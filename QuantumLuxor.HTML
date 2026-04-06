@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>QuantumLuxor | Mobile Pro Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600&display=swap');
+        
+        :root {
+            --bg-page: #f8fafc;
+            --header-bg: #ffffff;
+            --ai-bubble-bg: #ffffff;
+            --ai-text: #334155;
+            --user-bubble-bg: #ecfdf5;
+            --user-text: #064e3b;
+            --input-bg: #f1f5f9;
+            --border: #e2e8f0;
+        }
+
+        .dark-mode {
+            --bg-page: #0f172a;
+            --header-bg: #1e293b;
+            --ai-bubble-bg: #1e293b;
+            --ai-text: #f1f5f9;
+            --user-bubble-bg: #064e3b;
+            --user-text: #d1fae5;
+            --input-bg: #1e293b;
+            --border: #334155;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-page);
+            color: var(--ai-text);
+            overflow: hidden;
+            height: 100vh;
+            height: -webkit-fill-available;
+            transition: background-color 0.3s ease;
+        }
+
+        html { height: -webkit-fill-available; }
+
+        .font-heading { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+        /* Smooth Mobile Scroll */
+        .custom-scroll {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            -webkit-overflow-scrolling: touch;
+        }
+        .custom-scroll::-webkit-scrollbar { display: none; }
+
+        /* Animation */
+        @keyframes messageFade {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .message-anim { animation: messageFade 0.25s ease-out forwards; }
+
+        /* Bubbles */
+        .bubble {
+            max-width: 88%;
+            padding: 0.85rem 1rem;
+            border-radius: 1.25rem;
+            font-size: 0.925rem;
+            line-height: 1.5;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .ai-bubble {
+            background: var(--ai-bubble-bg);
+            border: 1px solid var(--border);
+            border-bottom-left-radius: 4px;
+            color: var(--ai-text);
+        }
+
+        .user-bubble {
+            background: var(--user-bubble-bg);
+            border: 1px solid transparent;
+            border-bottom-right-radius: 4px;
+            color: var(--user-text);
+        }
+
+        /* Markdown fixes for small screens */
+        .prose pre { font-size: 0.8rem; padding: 0.75rem; border-radius: 0.5rem; margin: 0.5rem 0; background: #000; color: #fff; }
+        .prose code { font-size: 0.85em; background: rgba(0,0,0,0.05); padding: 0.1rem 0.3rem; border-radius: 0.2rem; }
+        .dark-mode .prose code { background: rgba(255,255,255,0.1); }
+
+        /* UI Elements */
+        .typing-dot { width: 4px; height: 4px; background: #0ea5e9; border-radius: 50%; animation: pulse 1.4s infinite ease-in-out; }
+        @keyframes pulse { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.1); } }
+
+        .chip {
+            white-space: nowrap;
+            flex-shrink: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+        .hidden-screen { display: none !important; }
+    </style>
+</head>
+<body class="flex items-center justify-center">
+
+    <!-- Mobile Auth -->
+    <div id="auth-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-white dark:bg-slate-900 p-8 transition-colors">
+        <div class="w-full max-w-sm text-center">
+            <div class="w-16 h-16 bg-sky-500 rounded-2xl flex items-center justify-center shadow-xl mx-auto mb-6">
+                <i class="fas fa-sparkles text-white text-2xl"></i>
+            </div>
+            <h2 class="text-2xl font-extrabold text-slate-900 dark:text-white font-heading mb-2">QuantumLuxor</h2>
+            <p class="text-slate-500 dark:text-slate-400 mb-8 text-sm">Professional AI crafted by Gaagu.</p>
+            
+            <form onsubmit="handleAuth(event)" class="space-y-3">
+                <input type="email" id="user-email" required placeholder="Email" class="w-full px-5 py-4 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all">
+                <input type="password" id="user-pass" required placeholder="Access Code" class="w-full px-5 py-4 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all">
+                <button type="submit" class="w-full bg-slate-900 dark:bg-sky-600 text-white font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-lg uppercase text-xs tracking-widest">
+                    Enter Workspace
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- App Layout -->
+    <div id="app-screen" class="flex flex-col w-full h-full md:max-w-md md:h-[85vh] md:rounded-[2.5rem] bg-[var(--bg-page)] shadow-2xl overflow-hidden hidden-screen">
+        
+        <!-- Compact Header -->
+        <header class="flex items-center justify-between px-5 py-3 bg-[var(--header-bg)] border-b border-[var(--border)] transition-colors">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-sky-500 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-bolt text-white text-xs"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-sm font-heading tracking-tight">QuantumLuxor</h1>
+                    <span class="text-[9px] text-green-500 font-bold uppercase">Online</span>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-2">
+                <button onclick="toggleDarkMode()" class="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400">
+                    <i id="theme-icon" class="fas fa-moon text-xs"></i>
+                </button>
+                <button onclick="clearChat()" class="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400">
+                    <i class="fas fa-rotate-left text-xs"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Chat -->
+        <main id="chat-box" class="flex-1 overflow-y-auto p-4 custom-scroll space-y-5">
+            <!-- Messages -->
+        </main>
+
+        <!-- Sticky Footer -->
+        <footer class="bg-[var(--header-bg)] border-t border-[var(--border)] p-3 pb-safe transition-colors">
+            <!-- Mobile Action Chips -->
+            <div class="flex gap-2 overflow-x-auto no-scrollbar mb-3 px-1">
+                <button onclick="quickAction('Summarize')" class="chip px-3 py-1.5 rounded-full border border-[var(--border)] text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-[var(--bg-page)]">Summarize</button>
+                <button onclick="quickAction('Explain simply')" class="chip px-3 py-1.5 rounded-full border border-[var(--border)] text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-[var(--bg-page)]">Explain</button>
+                <button onclick="quickAction('Rewrite professionally')" class="chip px-3 py-1.5 rounded-full border border-[var(--border)] text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-[var(--bg-page)]">Refine</button>
+                <button onclick="quickAction('Fix grammar')" class="chip px-3 py-1.5 rounded-full border border-[var(--border)] text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-[var(--bg-page)]">Correct</button>
+            </div>
+
+            <!-- Input Bar -->
+            <div class="flex items-center gap-2">
+                <div class="flex-1 flex items-center gap-2 bg-[var(--input-bg)] border border-[var(--border)] rounded-2xl px-3 py-1 focus-within:ring-2 focus-within:ring-sky-500/20 transition-all">
+                    <button onclick="toggleVoice()" id="voice-btn" class="w-8 h-8 text-slate-400 hover:text-sky-500">
+                        <i class="fas fa-microphone text-sm"></i>
+                    </button>
+                    <textarea id="user-input" rows="1" placeholder="Ask anything..." 
+                        class="flex-1 bg-transparent border-none py-2 outline-none text-sm resize-none max-h-24"
+                        oninput="this.style.height = 'auto'; this.style.height = this.scrollHeight + 'px'"></textarea>
+                </div>
+                <button onclick="handleSend()" class="w-10 h-10 bg-slate-900 dark:bg-sky-500 text-white rounded-full flex items-center justify-center shadow-md active:scale-90 transition-transform">
+                    <i class="fas fa-paper-plane text-xs"></i>
+                </button>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        const API_KEY = "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";
+        const MODEL = "openai/gpt-oss-120b:free";
+        const DEVELOPER = "Gaagu (Solo Developer)";
+
+        let messageHistory = [{ 
+            role: 'system', 
+            content: `You are QuantumLuxor, built by solo dev ${DEVELOPER}. Use Markdown. Be warm and professional.` 
+        }];
+
+        function handleAuth(e) {
+            e.preventDefault();
+            document.getElementById('auth-screen').classList.add('hidden-screen');
+            document.getElementById('app-screen').classList.remove('hidden-screen');
+            setTimeout(() => appendMessage('assistant', `Hi! I'm **QuantumLuxor**. Ready to assist.`), 400);
+        }
+
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            const icon = document.getElementById('theme-icon');
+            icon.className = document.body.classList.contains('dark-mode') ? 'fas fa-sun text-xs' : 'fas fa-moon text-xs';
+        }
+
+        function clearChat() {
+            document.getElementById('chat-box').innerHTML = '';
+            messageHistory = [messageHistory[0]];
+        }
+
+        function toggleVoice() {
+            const btn = document.getElementById('voice-btn');
+            btn.classList.toggle('text-red-500');
+            btn.classList.toggle('animate-pulse');
+        }
+
+        function appendMessage(role, content) {
+            const chatBox = document.getElementById('chat-box');
+            const container = document.createElement('div');
+            container.className = `flex w-full ${role === 'user' ? 'justify-end' : 'justify-start'} message-anim`;
+            
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            container.innerHTML = `
+                <div class="flex flex-col ${role === 'user' ? 'items-end' : 'items-start'}">
+                    <div class="bubble ${role === 'user' ? 'user-bubble' : 'ai-bubble'} prose prose-sm dark:prose-invert">
+                        ${marked.parse(content)}
+                    </div>
+                    <span class="text-[8px] font-bold text-slate-400 uppercase mt-1 mx-1">${time}</span>
+                </div>
+            `;
+            
+            chatBox.appendChild(container);
+            chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
+        }
+
+        function showTyping() {
+            const chatBox = document.getElementById('chat-box');
+            const typing = document.createElement('div');
+            typing.id = 'typing-indicator';
+            typing.className = 'flex gap-1 p-2 message-anim';
+            typing.innerHTML = `<div class="typing-dot"></div><div class="typing-dot" style="animation-delay:0.2s"></div><div class="typing-dot" style="animation-delay:0.4s"></div>`;
+            chatBox.appendChild(typing);
+            chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
+            return typing;
+        }
+
+        async function handleSend(overrideText = null) {
+            const inputEl = document.getElementById('user-input');
+            const text = overrideText || inputEl.value.trim();
+            if (!text) return;
+
+            inputEl.value = '';
+            inputEl.style.height = 'auto';
+            
+            appendMessage('user', text);
+            const typing = showTyping();
+            messageHistory.push({ role: 'user', content: text });
+
+            try {
+                const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${API_KEY}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ model: MODEL, messages: messageHistory })
+                });
+                const data = await res.json();
+                typing.remove();
+                if (data.choices?.[0]) {
+                    const reply = data.choices[0].message.content;
+                    messageHistory.push({ role: 'assistant', content: reply });
+                    appendMessage('assistant', reply);
+                }
+            } catch (err) {
+                typing.remove();
+                appendMessage('assistant', `Connection error.`);
+            }
+        }
+
+        function quickAction(cmd) { handleSend(cmd); }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.target.id === 'user-input' && e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+            }
+        });
+    </script>
+</body>
+</html>
